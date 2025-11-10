@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PONG - 1980</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>P O N G</h1>
+            <p class="info">Hráč: W/S | Reset: SPACE</p>
+        </div>
+        <canvas id="pongCanvas" width="800" height="600"></canvas>
+        <div class="score">
+            <div class="player-score">
+                <span class="label">HRÁČ</span>
+                <span id="playerScore" class="score-value">0</span>
+            </div>
+            <div class="ai-score">
+                <span class="label">POČÍTAČ</span>
+                <span id="aiScore" class="score-value">0</span>
+            </div>
+        </div>
+    </div>
+    <script src="pong.js"></script>
+</body>
+</html>
