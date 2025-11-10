@@ -11,22 +11,22 @@ const ballSize = 10;
 const difficultySettings = {
     easy: {
         aiSpeed: 3,
-        aiError: 60,           // větší tolerance = více chyb
-        aiReactionDelay: 0.3,  // 30% šance že nereaguje
+        aiError: 80,           // větší tolerance = více chyb
+        aiReactionDelay: 0.4,  // 40% šance že ignoruje míček
         ballSpeedIncrease: 0.02,
         maxBallSpeed: 10
     },
     medium: {
         aiSpeed: 4,
-        aiError: 35,
-        aiReactionDelay: 0.15,
+        aiError: 45,
+        aiReactionDelay: 0.2,  // 20% šance že ignoruje míček
         ballSpeedIncrease: 0.03,
         maxBallSpeed: 12
     },
     hard: {
         aiSpeed: 5,
-        aiError: 15,
-        aiReactionDelay: 0.05,
+        aiError: 20,
+        aiReactionDelay: 0.08, // 8% šance že ignoruje míček
         ballSpeedIncrease: 0.04,
         maxBallSpeed: 15
     }
@@ -51,7 +51,9 @@ const ai = {
     y: canvas.height / 2 - paddleHeight / 2,
     width: paddleWidth,
     height: paddleHeight,
-    speed: 4
+    speed: 4,
+    targetY: canvas.height / 2,  // Cílová pozice AI
+    targetUpdateCounter: 0        // Čítač pro aktualizaci cíle
 };
 
 // Ball
@@ -183,19 +185,29 @@ function updatePlayer() {
 function updateAI() {
     const settings = difficultySettings[currentDifficulty];
 
-    // Náhodná šance, že AI nereaguje (chyba/nepozornost)
-    if (Math.random() < settings.aiReactionDelay) {
-        return;
+    // Aktualizuj cíl AI každých 10-20 snímků (ne každý frame)
+    ai.targetUpdateCounter++;
+    if (ai.targetUpdateCounter > 15) {
+        ai.targetUpdateCounter = 0;
+
+        // Náhodná šance, že AI úplně ignoruje míček
+        if (Math.random() < settings.aiReactionDelay) {
+            // AI se pokusí vrátit do středu když nereaguje
+            ai.targetY = canvas.height / 2;
+        } else {
+            // Přidání náhodné nepřesnosti k cílové pozici
+            const error = (Math.random() - 0.5) * settings.aiError;
+            ai.targetY = ball.y + error;
+        }
     }
 
     const aiCenter = ai.y + ai.height / 2;
+    const deadZone = 20; // Větší dead zone pro plynulejší pohyb
 
-    // Přidání náhodné nepřesnosti (AI není dokonalá)
-    const targetY = ball.y + (Math.random() - 0.5) * settings.aiError;
-
-    if (aiCenter < targetY - 10) {
+    // Pohyb AI k cílové pozici
+    if (aiCenter < ai.targetY - deadZone) {
         ai.y += ai.speed;
-    } else if (aiCenter > targetY + 10) {
+    } else if (aiCenter > ai.targetY + deadZone) {
         ai.y -= ai.speed;
     }
 
@@ -302,6 +314,8 @@ function resetGame() {
     resetBall();
     player.y = canvas.height / 2 - paddleHeight / 2;
     ai.y = canvas.height / 2 - paddleHeight / 2;
+    ai.targetY = canvas.height / 2;
+    ai.targetUpdateCounter = 0;
 }
 
 // Draw everything
