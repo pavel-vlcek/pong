@@ -7,6 +7,34 @@ const paddleWidth = 10;
 const paddleHeight = 100;
 const ballSize = 10;
 
+// Difficulty settings
+const difficultySettings = {
+    easy: {
+        aiSpeed: 3,
+        aiError: 60,           // větší tolerance = více chyb
+        aiReactionDelay: 0.3,  // 30% šance že nereaguje
+        ballSpeedIncrease: 0.02,
+        maxBallSpeed: 10
+    },
+    medium: {
+        aiSpeed: 4,
+        aiError: 35,
+        aiReactionDelay: 0.15,
+        ballSpeedIncrease: 0.03,
+        maxBallSpeed: 12
+    },
+    hard: {
+        aiSpeed: 5,
+        aiError: 15,
+        aiReactionDelay: 0.05,
+        ballSpeedIncrease: 0.04,
+        maxBallSpeed: 15
+    }
+};
+
+let currentDifficulty = 'medium';
+let gamePaused = true;
+
 // Player paddle (left)
 const player = {
     x: 20,
@@ -33,7 +61,8 @@ const ball = {
     size: ballSize,
     dx: 4,
     dy: 4,
-    speed: 4
+    baseSpeed: 4,
+    currentSpeed: 4
 };
 
 // Score
@@ -43,6 +72,21 @@ let aiScore = 0;
 // Keyboard state
 const keys = {};
 
+// Menu elements
+const difficultyMenu = document.getElementById('difficultyMenu');
+const difficultyLabel = document.getElementById('difficultyLabel');
+const menuButtons = document.querySelectorAll('.menu-button');
+
+// Menu button handlers
+menuButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const difficulty = button.getAttribute('data-difficulty');
+        setDifficulty(difficulty);
+        closeMenu();
+        startGame();
+    });
+});
+
 // Event listeners
 document.addEventListener('keydown', (e) => {
     keys[e.key.toLowerCase()] = true;
@@ -51,11 +95,53 @@ document.addEventListener('keydown', (e) => {
     if (e.key === ' ') {
         resetGame();
     }
+
+    // Open difficulty menu with ESC
+    if (e.key === 'Escape') {
+        toggleMenu();
+    }
 });
 
 document.addEventListener('keyup', (e) => {
     keys[e.key.toLowerCase()] = false;
 });
+
+// Set difficulty
+function setDifficulty(difficulty) {
+    currentDifficulty = difficulty;
+    const settings = difficultySettings[difficulty];
+
+    ai.speed = settings.aiSpeed;
+    ball.baseSpeed = 4;
+    ball.currentSpeed = 4;
+
+    // Update label
+    const difficultyNames = {
+        easy: 'LEHKÁ',
+        medium: 'STŘEDNÍ',
+        hard: 'TĚŽKÁ'
+    };
+    difficultyLabel.textContent = `Obtížnost: ${difficultyNames[difficulty]}`;
+
+    resetGame();
+}
+
+// Toggle menu
+function toggleMenu() {
+    gamePaused = !gamePaused;
+    difficultyMenu.classList.toggle('hidden');
+}
+
+// Close menu
+function closeMenu() {
+    gamePaused = false;
+    difficultyMenu.classList.add('hidden');
+}
+
+// Start game
+function startGame() {
+    gamePaused = false;
+}
 
 // Draw rectangle
 function drawRect(x, y, width, height) {
@@ -93,13 +179,23 @@ function updatePlayer() {
     }
 }
 
-// Update AI paddle (simple AI)
+// Update AI paddle with errors
 function updateAI() {
+    const settings = difficultySettings[currentDifficulty];
+
+    // Náhodná šance, že AI nereaguje (chyba/nepozornost)
+    if (Math.random() < settings.aiReactionDelay) {
+        return;
+    }
+
     const aiCenter = ai.y + ai.height / 2;
 
-    if (aiCenter < ball.y - 35) {
+    // Přidání náhodné nepřesnosti (AI není dokonalá)
+    const targetY = ball.y + (Math.random() - 0.5) * settings.aiError;
+
+    if (aiCenter < targetY - 10) {
         ai.y += ai.speed;
-    } else if (aiCenter > ball.y + 35) {
+    } else if (aiCenter > targetY + 10) {
         ai.y -= ai.speed;
     }
 
@@ -124,11 +220,14 @@ function updateBall() {
         ball.y > player.y &&
         ball.y < player.y + player.height) {
 
+        // Postupné zrychlování při odrazu
+        speedUpBall();
+
         ball.dx = Math.abs(ball.dx);
 
         // Add angle based on where ball hits paddle
         const hitPos = (ball.y - player.y) / player.height;
-        ball.dy = (hitPos - 0.5) * 8;
+        ball.dy = (hitPos - 0.5) * 8 * (ball.currentSpeed / ball.baseSpeed);
     }
 
     // Ball collision with AI paddle
@@ -137,11 +236,14 @@ function updateBall() {
         ball.y > ai.y &&
         ball.y < ai.y + ai.height) {
 
+        // Postupné zrychlování při odrazu
+        speedUpBall();
+
         ball.dx = -Math.abs(ball.dx);
 
         // Add angle based on where ball hits paddle
         const hitPos = (ball.y - ai.y) / ai.height;
-        ball.dy = (hitPos - 0.5) * 8;
+        ball.dy = (hitPos - 0.5) * 8 * (ball.currentSpeed / ball.baseSpeed);
     }
 
     // Score point for player
@@ -159,14 +261,31 @@ function updateBall() {
     }
 }
 
+// Speed up ball gradually
+function speedUpBall() {
+    const settings = difficultySettings[currentDifficulty];
+
+    if (ball.currentSpeed < settings.maxBallSpeed) {
+        ball.currentSpeed += settings.ballSpeedIncrease;
+
+        // Aplikuj novou rychlost zachováním směru
+        const angle = Math.atan2(ball.dy, ball.dx);
+        ball.dx = Math.cos(angle) * ball.currentSpeed;
+        ball.dy = Math.sin(angle) * ball.currentSpeed;
+    }
+}
+
 // Reset ball to center
 function resetBall() {
     ball.x = canvas.width / 2;
     ball.y = canvas.height / 2;
 
+    // Reset rychlosti
+    ball.currentSpeed = ball.baseSpeed;
+
     // Random direction
-    ball.dx = (Math.random() > 0.5 ? 1 : -1) * ball.speed;
-    ball.dy = (Math.random() * 2 - 1) * ball.speed;
+    ball.dx = (Math.random() > 0.5 ? 1 : -1) * ball.baseSpeed;
+    ball.dy = (Math.random() * 2 - 1) * ball.baseSpeed;
 }
 
 // Update score display
@@ -204,13 +323,19 @@ function draw() {
 
 // Game loop
 function gameLoop() {
-    updatePlayer();
-    updateAI();
-    updateBall();
+    if (!gamePaused) {
+        updatePlayer();
+        updateAI();
+        updateBall();
+    }
+
     draw();
 
     requestAnimationFrame(gameLoop);
 }
 
-// Start game
+// Initialize game
+setDifficulty('medium');
+
+// Start game loop
 gameLoop();

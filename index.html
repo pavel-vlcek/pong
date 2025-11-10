@@ -7,10 +7,20 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="difficultyMenu" class="menu-overlay">
+        <div class="menu-content">
+            <h2>VYBERTE OBTÍŽNOST</h2>
+            <button class="menu-button" data-difficulty="easy">LEHKÁ</button>
+            <button class="menu-button" data-difficulty="medium">STŘEDNÍ</button>
+            <button class="menu-button" data-difficulty="hard">TĚŽKÁ</button>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header">
             <h1>P O N G</h1>
-            <p class="info">Hráč: W/S | Reset: SPACE</p>
+            <p class="info">Hráč: W/S | Reset: SPACE | Obtížnost: ESC</p>
+            <p id="difficultyLabel" class="difficulty-label">Obtížnost: STŘEDNÍ</p>
         </div>
         <canvas id="pongCanvas" width="800" height="600"></canvas>
         <div class="score">
